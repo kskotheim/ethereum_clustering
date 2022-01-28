@@ -22,6 +22,33 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 from sklearn.manifold import TSNE
 
+# loads the top x addresses by balance from the bigquery dataset
+def load_test_data(x):
+    table = 'bigquery-public-data.crypto_ethereum.balances'
+    sql = '''
+    SELECT eth_balance from `{}`
+    ORDER BY eth_balance
+    DESC
+    LIMIT {}
+    '''.format(table, x)
+    
+    df = client.query(sql).to_dataframe()
+    return df
+
+# displays the dataframe in a log-log plot
+def test_plot(df):
+    fig = plt.figure(figsize=(15,12))
+    ax = fig.add_subplot(111)
+
+    
+    plt.loglog(range(0, len(df)), df.iloc[:,0])
+
+    
+    plt.title('log-log', fontsize=20)
+    plt.xlabel('address ct')
+    plt.ylabel('balance')
+    plt.show()
+
 def load_data_from_bigquery(table): #, label_table):
     table = 'bigquery-public-data.crypto_ethereum.balances'
 #    label_table = 'eth-tokens.alldata.etherscan_labelcloud'
@@ -31,7 +58,7 @@ def load_data_from_bigquery(table): #, label_table):
     SELECT *  FROM `{}`
     ORDER BY eth_balance
     DESC
-    LIMIT 1000
+    LIMIT 10000
     '''.format(table)
 
     df = client.query(sql).to_dataframe()
