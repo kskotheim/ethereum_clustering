@@ -1,6 +1,9 @@
 import nltk
 from nltk.cluster.kmeans import KMeansClusterer 
 
+import os
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="admin-service.json"
+
 from google.cloud import bigquery
 client = bigquery.Client()
 
@@ -19,29 +22,32 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 from sklearn.manifold import TSNE
 
-def load_data_from_bigquery(table, label_table):
-    table = 'eth-tokens.test.clean_avg_with_balances_tokens'
-    label_table = 'eth-tokens.alldata.etherscan_labelcloud'
+def load_data_from_bigquery(table): #, label_table):
+    table = 'bigquery-public-data.crypto_ethereum.balances'
+#    label_table = 'eth-tokens.alldata.etherscan_labelcloud'
     
     #all data
     sql = '''
     SELECT *  FROM `{}`
+    ORDER BY eth_balance
+    DESC
+    LIMIT 1000
     '''.format(table)
 
     df = client.query(sql).to_dataframe()
     
     #labelled data
-    sql = '''
-    SELECT es.label,es.category, a.*  FROM `{}` a
-    INNER JOIN `{}` es
-    ON a.address = es.address
-    WHERE es.label IS NOT NULL
+#    sql = '''
+#    SELECT es.label,es.category, a.*  FROM `{}` a
+#    INNER JOIN `{}` es
+#    ON a.address = es.address
+#    WHERE es.label IS NOT NULL
 
-    '''.format(table, label_table)
+#    '''.format(table, label_table)
 
-    dflabel = client.query(sql).to_dataframe()
+#    dflabel = client.query(sql).to_dataframe()
     
-    return df, dflabel
+    return df#, dflabel
 
 def data_pipeline(df):
     #strip address column
@@ -60,7 +66,7 @@ def data_pipeline(df):
     return pipe, results
 
 def cluster(results, n_clusters):
-    cl = KMeans(n_clusters, n_init=20, max_iter=500,n_jobs=-1, verbose=0)
+    cl = KMeans(n_clusters, n_init=20, max_iter=500, verbose=0)
     return cl.fit(results)
     
     
@@ -97,8 +103,6 @@ def plot_tsne(cl, tsne_results ):
 
     fig = plt.figure(figsize=(15,12))
     ax = fig.add_subplot(111)
-    ax.set_color_cycle([cm(1.*i/NUM_COLORS) for i in range(NUM_COLORS)])
-
 
     for c in np.unique(cl.labels_):
         mask = cl.labels_==c
